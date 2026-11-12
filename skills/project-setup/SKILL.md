@@ -115,6 +115,6 @@ Ask everything in one message, with a recommended answer for each:
 
 Run the diagnosis again and show the final table, including the new line counts of `CLAUDE.md` and `AGENTS.md`. Print every ID that Goal Loop returned. List anything left undone and why.
 
-## Updating grill-me and grilling
+## Updating grilling
 
-They are vendored from `mattpocock/skills` (MIT) at commit `4ae2317ddb22b046e26455e4f9c9b3aaaf62212d`; see `THIRD_PARTY.md` in this plugin's repository. `grill-me` only calls `grilling`, so update both together, with `agents/openai.yaml` and `LICENSE`. Do not add `grill-with-docs` or `wayfinder`: their ADR/glossary files and effort maps overlap Memory Tool documents and Goal Loop Aims.
+`grilling` is vendored unchanged from `mattpocock/skills` (MIT) at commit `4ae2317ddb22b046e26455e4f9c9b3aaaf62212d`; update it with its `agents/openai.yaml` and `LICENSE`. `grill-me` is this plugin's own entry point (see `THIRD_PARTY.md`); do not replace it with the upstream one-liner. Do not add `grill-with-docs` or `wayfinder`: their ADR/glossary files and effort maps overlap Memory Tool documents and Goal Loop Aims.

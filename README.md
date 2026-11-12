@@ -8,7 +8,8 @@
 | 스킬 | 하는 일 |
 |:---|:---|
 | `project-setup` | 프로젝트 하나를 진단하고, 사용자가 승인한 항목만 설치합니다. 새 프로젝트와 기존 프로젝트에 같은 절차를 씁니다. |
-| `grill-me`, `grilling` | 계획이나 결정을 질문으로 검증합니다. [mattpocock/skills](https://github.com/mattpocock/skills)의 원본을 그대로 포함합니다(MIT, [THIRD_PARTY.md](THIRD_PARTY.md)). |
+| `grill-me` | 계획이나 결정을 질문으로 검증하는 입구입니다(`/agent-workbench:grill-me`). Goal Loop에 기록할 계획이면 `goal-loop-planning`의 질문을 함께 쓰고, 끝에 Goal Loop 기록 초안을 보여 줍니다. |
+| `grilling` | `grill-me`가 따르는 질문 방식입니다. [mattpocock/skills](https://github.com/mattpocock/skills)의 원본을 그대로 포함합니다(MIT, [THIRD_PARTY.md](THIRD_PARTY.md)). |
 
 ## 요구 사항
 
@@ -52,4 +53,4 @@ python skills/project-setup/scripts/workbench.py diagnose <프로젝트 폴더>
 ## 라이선스
 
 [Apache License 2.0](LICENSE)으로 배포합니다. 저작권 표기는 [NOTICE](NOTICE)에 있습니다.
-포함한 `grill-me`, `grilling` 스킬은 MIT 라이선스를 따릅니다([THIRD_PARTY.md](THIRD_PARTY.md)).
+포함한 `grilling` 스킬은 MIT 라이선스를 따릅니다([THIRD_PARTY.md](THIRD_PARTY.md)).
