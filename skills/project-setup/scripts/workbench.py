@@ -22,6 +22,7 @@ SKILLS_DIR = Path(__file__).resolve().parents[2]  # <plugin>/skills
 CONFIG_PATH = Path.home() / ".agent-workbench.toml"
 MT_SKILLS = ("mt-write", "mt-publish", "mt-master-module")
 GRILL_SKILLS = ("grill-me", "grilling")
+GOAL_LOOP_SKILLS = ("goal-loop", "goal-loop-planning")
 GOAL_LOOP_MARK = "<!-- goal-loop:begin"
 SETUP_MARK = "<!-- project-setup:begin"
 
@@ -109,8 +110,9 @@ def diagnose(root: Path, config: dict) -> list[dict]:
     judging = root / ".goal-loop/judging.json"
     judge = json.loads(judging.read_text(encoding="utf-8")).get("judge", "codex (default)") if judging.is_file() else "-"
     add("goal-loop", "judge", None, judge)
-    add("goal-loop", ".claude/skills/goal-loop", (root / ".claude/skills/goal-loop/SKILL.md").is_file())
-    add("codex", ".agents/skills/goal-loop", (root / ".agents/skills/goal-loop/SKILL.md").is_file())
+    for name in GOAL_LOOP_SKILLS:
+        add("goal-loop", f".claude/skills/{name}", (root / ".claude/skills" / name / "SKILL.md").is_file())
+        add("codex", f".agents/skills/{name}", (root / ".agents/skills" / name / "SKILL.md").is_file())
 
     # Instruction files
     umbrella = config.get("umbrella", {}).get("path")
@@ -127,8 +129,8 @@ def diagnose(root: Path, config: dict) -> list[dict]:
             detail += "; generated before Memory Tool (regenerate)"
         if name == "AGENTS.md" and not has_section and "CLAUDE.md" in text:
             detail = "points to CLAUDE.md"
-        add("instructions", name, None, detail)
-        add("instructions", f"{name} project-setup note", SETUP_MARK in text or detail == "points to CLAUDE.md")
+        add("instructions", name, None, f"{len(text.splitlines())} lines; {detail}")
+        add("instructions", f"{name} project-setup note", None, "present" if SETUP_MARK in text else "absent (needed only with a record-everything rule)")
 
     # User-level skills
     plugin = plugin_installed()
