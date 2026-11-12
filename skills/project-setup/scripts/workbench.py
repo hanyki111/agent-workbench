@@ -49,6 +49,15 @@ def same_path(a: str | Path, b: str | Path) -> bool:
     return os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
 
 
+def plugin_installed() -> bool:
+    """Whether Claude Code lists this plugin as installed for the user."""
+    path = Path.home() / ".claude/plugins/installed_plugins.json"
+    try:
+        return "agent-workbench@" in path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+
+
 def memory_base(root: Path) -> tuple[str, bool]:
     """The knowledge base folder name and whether a .memory-tool.yml pointer names it."""
     pointer = root / ".memory-tool.yml"
@@ -122,8 +131,13 @@ def diagnose(root: Path, config: dict) -> list[dict]:
         add("instructions", f"{name} project-setup note", SETUP_MARK in text or detail == "points to CLAUDE.md")
 
     # User-level skills
+    plugin = plugin_installed()
     for name in GRILL_SKILLS:
-        add("user-skills", f"~/.claude/skills/{name}", (Path.home() / ".claude/skills" / name / "SKILL.md").is_file(), "not needed when the plugin is installed")
+        user_copy = (Path.home() / ".claude/skills" / name / "SKILL.md").is_file()
+        detail = "from the agent-workbench plugin" if plugin else ""
+        if plugin and user_copy:
+            detail += "; ~/.claude/skills copy is a duplicate"
+        add("user-skills", f"Claude Code: {name}", plugin or user_copy, detail or "~/.claude/skills")
         add("user-skills", f"$CODEX_HOME/skills/{name}", (codex_home() / "skills" / name / "SKILL.md").is_file())
 
     # CLIs
