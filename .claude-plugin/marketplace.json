@@ -1,0 +1,17 @@
+{
+  "name": "agent-workbench",
+  "owner": {
+    "name": "hanyki111",
+    "url": "https://github.com/hanyki111"
+  },
+  "description": "Agent workbench for projects that use Goal Loop and Memory Tool together.",
+  "plugins": [
+    {
+      "name": "agent-workbench",
+      "source": "./",
+      "description": "Project setup and checks for Goal Loop + Memory Tool, plus the grill-me/grilling skills.",
+      "category": "productivity",
+      "keywords": ["goal-loop", "memory-tool", "project-setup", "grilling"]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# Copy to ~/.agent-workbench.toml and edit. Every key is optional.
+
+[umbrella]
+# A folder whose Goal Loop journal plans several projects.
+# project-setup checks whether a project is linked from it and offers to link it.
+path = "D:/notes"
+# The Aim in that journal under which project Aims are created.
+parent_aim = "aim-1"
+
+[goal_loop]
+# A Goal Loop development checkout. project-setup compares the PATH CLI against its .venv.
+dev_checkout = "D:/src/goal-loop"

@@ -1,0 +1,12 @@
+{
+  "name": "agent-workbench",
+  "version": "0.1.0",
+  "description": "Set up and check projects that use Goal Loop and Memory Tool together, with the grill-me/grilling plan interview skills.",
+  "author": {
+    "name": "hanyki111",
+    "url": "https://github.com/hanyki111"
+  },
+  "repository": "https://github.com/hanyki111/agent-workbench",
+  "license": "Apache-2.0",
+  "keywords": ["goal-loop", "memory-tool", "project-setup", "grilling", "codex"]
+}
