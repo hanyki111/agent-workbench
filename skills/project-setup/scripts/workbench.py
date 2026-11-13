@@ -20,7 +20,7 @@ from pathlib import Path
 
 SKILLS_DIR = Path(__file__).resolve().parents[2]  # <plugin>/skills
 CONFIG_PATH = Path.home() / ".agent-workbench.toml"
-MT_SKILLS = ("mt-write", "mt-publish", "mt-master-module")
+MT_SKILLS = ("mt-record", "mt-write", "mt-publish", "mt-master-module")
 GRILL_SKILLS = ("grill-me", "grilling")
 GOAL_LOOP_SKILLS = ("goal-loop", "goal-loop-planning")
 GOAL_LOOP_MARK = "<!-- goal-loop:begin"
@@ -92,7 +92,8 @@ def diagnose(root: Path, config: dict) -> list[dict]:
     # Memory Tool
     memory = (root / base).is_dir() if base != "." else has_pointer
     add("memory-tool", "knowledge base", memory, f"base={base}" + ("" if has_pointer else " (no .memory-tool.yml)"))
-    add("memory-tool", ".claude/guidelines.md", (root / ".claude/guidelines.md").is_file())
+    if (root / ".claude/guidelines.md").is_file():
+        add("memory-tool", ".claude/guidelines.md", False, "left by an older version; minit --update-all sets it aside")
     for name in MT_SKILLS:
         add("memory-tool", f".claude/skills/{name}", (root / ".claude/skills" / name / "SKILL.md").is_file())
         add("codex", f".agents/skills/{name}", (root / ".agents/skills" / name / "SKILL.md").is_file())
@@ -114,23 +115,25 @@ def diagnose(root: Path, config: dict) -> list[dict]:
         add("goal-loop", f".claude/skills/{name}", (root / ".claude/skills" / name / "SKILL.md").is_file())
         add("codex", f".agents/skills/{name}", (root / ".agents/skills" / name / "SKILL.md").is_file())
 
-    # Instruction files
+    # Instruction files: AGENTS.md is the source, CLAUDE.md imports it
     umbrella = config.get("umbrella", {}).get("path")
     is_umbrella = bool(umbrella) and same_path(umbrella, root)
+    texts = {name: (root / name).read_text(encoding="utf-8") for name in ("CLAUDE.md", "AGENTS.md") if (root / name).is_file()}
     for name in ("CLAUDE.md", "AGENTS.md"):
-        path = root / name
-        if not path.is_file():
+        if name not in texts:
             add("instructions", name, False, "missing")
             continue
-        text = path.read_text(encoding="utf-8")
-        has_section = GOAL_LOOP_MARK in text
-        detail = "goal-loop section" if has_section else ("umbrella: hand-written section expected" if is_umbrella else "no goal-loop section")
-        if has_section and memory and "memory_tool context" not in text:
-            detail += "; generated before Memory Tool (regenerate)"
-        if name == "AGENTS.md" and not has_section and "CLAUDE.md" in text:
-            detail = "points to CLAUDE.md"
-        add("instructions", name, None, f"{len(text.splitlines())} lines; {detail}")
-        add("instructions", f"{name} project-setup note", None, "present" if SETUP_MARK in text else "absent (needed only with a record-everything rule)")
+        add("instructions", name, None, f"{len(texts[name].splitlines())} lines")
+    claude, agents = texts.get("CLAUDE.md", ""), texts.get("AGENTS.md", "")
+    imports = any(line.strip() == "@AGENTS.md" for line in claude.splitlines())
+    add("instructions", "CLAUDE.md imports @AGENTS.md", imports, "" if imports else "layout: AGENTS.md should be the source")
+    generated = [name for name, text in texts.items() if GOAL_LOOP_MARK in text]
+    if generated:
+        reason = "duplicates the umbrella's hand-written section" if is_umbrella else "names one agent; use --skills-only and the shared rules"
+        add("instructions", "generated goal-loop section", False, f"in {', '.join(generated)}: {reason}")
+    if "guidelines.md" in claude + agents and not (root / ".claude/guidelines.md").is_file():
+        add("instructions", "reference to .claude/guidelines.md", False, "stale: the file is retired; usage is in mt-record")
+    add("instructions", "project-setup note", None, "present" if SETUP_MARK in claude + agents else "absent (needed only with a record-everything rule)")
 
     # User-level skills
     plugin = plugin_installed()

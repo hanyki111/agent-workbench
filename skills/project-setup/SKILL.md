@@ -1,6 +1,6 @@
 ---
 name: project-setup
-description: Diagnose one project folder, fill in whatever is missing from the Goal Loop + Memory Tool setup (Memory Tool knowledge base, Goal Loop journal and skills, Codex copies, a minimal managed note), and tidy CLAUDE.md/AGENTS.md so they hold only always-on rules. Use when the user starts a new project, wants an existing project brought up to that setup, or wants its agent instructions cleaned up ("프로젝트 세팅해줘", "이 프로젝트에 goal loop랑 memory tool 붙여줘", "부족한 거 설치해줘", "CLAUDE.md 정리해줘", "set up this project").
+description: Diagnose one project folder, fill in whatever is missing from the Goal Loop + Memory Tool setup (Memory Tool knowledge base and skills, Goal Loop journal and skills, a minimal managed note), and tidy the agent instructions into one AGENTS.md that CLAUDE.md imports, holding only always-on rules. Use when the user starts a new project, wants an existing project brought up to that setup, or wants its agent instructions cleaned up ("프로젝트 세팅해줘", "이 프로젝트에 goal loop랑 memory tool 붙여줘", "부족한 거 설치해줘", "CLAUDE.md 정리해줘", "set up this project").
 ---
 
 # Project Setup
@@ -8,14 +8,22 @@ description: Diagnose one project folder, fill in whatever is missing from the G
 A project uses these pieces. This skill finds which ones are missing, asks, installs only those, and then tidies the
 instruction files. A new project is the case where everything is missing, so the same procedure covers new and existing projects.
 
-| Piece | What it provides | Installed by |
+| Piece | What it provides | Installed or updated by |
 |:---|:---|:---|
-| Memory Tool | knowledge base (`.memory/` by default), `.memory-tool.yml`, `.claude/guidelines.md`, `.claude/skills/mt-*` | `python -m memory_tool init` (alias `minit`) |
-| Goal Loop | `.goal-loop/` journal, `goal-loop` and `goal-loop-planning` skills, a marked section in `CLAUDE.md` and `AGENTS.md` | `goal-loop project-init . --agents claude[,codex] [--skills-only] --judge <judge>` |
+| Memory Tool | knowledge base (`.memory/` by default), `.memory-tool.yml`, `mt-*` skills in `.claude/skills/` and `.agents/skills/`, `<base>/templates/CLAUDE.md.template` | `python -m memory_tool init` (alias `minit`); `minit --update-all` refreshes skills in an existing project |
+| Goal Loop | `.goal-loop/` journal, `goal-loop` and `goal-loop-planning` skills in `.claude/skills/` and `.agents/skills/` | `goal-loop project-init . --agents claude,codex --skills-only --judge <judge>` |
 | grill-me / grilling | Plan interview skills | This plugin (Claude Code); `scripts/workbench.py install-codex` (Codex) |
-| Managed note | Rules that apply only when the tools are used together | This skill, between `project-setup` markers |
+| Instructions | `AGENTS.md` with the always-on rules; `CLAUDE.md` that imports it | This skill (step 3.5) |
 
-Both tools stay standalone. This skill calls their own installers and never copies their templates, so a tool update reaches projects through the tool itself.
+Both tools stay standalone. This skill calls their installers and reads their templates in the project; it never keeps copies of them, so a tool update reaches projects through the tool itself.
+
+## Instruction layout
+
+`AGENTS.md` is the single source: Codex reads it directly and Claude Code reads it through `@AGENTS.md`. Both files load in every session, so they hold only what must apply without a request; how to use a tool lives in its skill.
+
+- `AGENTS.md`: the project's own rules and facts, the Memory Tool rules, the shared Goal Loop rules, and a short `## Codex` section (record as `codex`, judge with `--judge <judge for codex>`).
+- `CLAUDE.md`: `@AGENTS.md`, then a short `## Claude Code` section saying the Codex section does not apply to Claude, the name `claude`, and `--judge <judge for claude>`. Nothing else, unless a rule really is Claude-only.
+- Goal Loop is installed with `--skills-only`, because its generated section names one agent and would reach Claude through the import. The command's `judges_by_agent` gives the judge for each agent.
 
 ## Settings
 
@@ -30,10 +38,11 @@ Never write personal paths or Aim IDs into this skill or into a project's files 
 
 - Work on one project per run. Confirm the project root with the user before anything else (default: `git rev-parse --show-toplevel`, else the current folder).
 - Diagnose first and change nothing until the user approves the specific actions.
-- Never run `minit --force` or `minit --update-all`. They overwrite an existing knowledge base or templates.
-- Text outside the `goal-loop` and `project-setup` markers belongs to the user. Change it only in step 3.6, and only as the diff the user approved.
+- Never run `minit --force`: it overwrites an existing knowledge base. `minit --update-all` replaces the `mt-*` skills and sets aside an old `.claude/guidelines.md` with a backup; run it only after saying so and getting approval.
+- Text outside the `goal-loop` and `project-setup` markers belongs to the user. Change it only in step 3.5, and only as the diff the user approved.
 - Show the exact diff before writing `CLAUDE.md`, `AGENTS.md` or `.gitignore`.
 - Do not create Goal Loop Aims, Proposals or Goals on your own. Linking to the umbrella journal needs the user's approval for each record.
+- If another session is changing the same files (uncommitted changes you did not make), stop and say so instead of editing.
 
 ## 1. Diagnose
 
@@ -45,10 +54,9 @@ python <this skill's folder>/scripts/workbench.py diagnose <project root>
 
 Then check what the script cannot judge:
 
-- **Goal Loop section:** the umbrella project keeps a hand-written Goal Loop section, so a missing generated section is expected there. An `AGENTS.md` that only points to `CLAUDE.md` and lists Codex differences is fine.
 - **CLI version:** if the PATH `goal-loop` differs from the development checkout, check that the checkout's work is pushed (`git status -sb` shows no `ahead`), then suggest `python -m pipx reinstall goal-loop-tool`. `pipx upgrade` may do nothing because the version does not change.
-- **Instruction files:** read `CLAUDE.md` and `AGENTS.md` whole and classify every block as in step 3.6. Report the line counts and how many lines each class holds.
-- **Logging rule:** note whether the project's instructions require recording every activity (for example "record everything with `m`"). The managed note depends on it.
+- **Instruction files:** read `CLAUDE.md` and `AGENTS.md` whole and classify every block as in step 3.5. Report the line counts, the layout (which file is the source, whether `CLAUDE.md` imports `AGENTS.md`), and how many lines each class holds.
+- **Logging rule:** note whether the project's rules require recording every activity (for example "record everything with `m`"). The managed note depends on it.
 
 Report one table: item, current state, proposed action.
 
@@ -60,48 +68,73 @@ Ask everything in one message, with a recommended answer for each:
 - **The knowledge base and Git, every time:** usually exclude it, because the timeline is personal and a remote would publish it. A notes repository whose purpose is to keep it stays tracked. If it is already tracked, excluding it now does not remove history: say so.
 - The judge for `--judge` (default `codex`; `claude` if Codex is not logged in).
 - For an Obsidian vault, the base folder name (`--base memory` or `--base .`), since Obsidian hides dot folders.
-- Whether the project is also used with Codex (copies to `.agents/skills/`, an `AGENTS.md`).
-- Whether to tidy `CLAUDE.md` and `AGENTS.md` (step 3.6). Recommend it when they hold usage, history or duplicates.
+- Whether to tidy the instruction files into the layout above (step 3.5). Recommend it when they hold usage, history or duplicates, or use another layout.
 - Whether to link the project to the umbrella journal, when one is configured.
 
 ## 3. Apply, in this order
 
-1. **Memory Tool** (if missing): `python -m memory_tool init [--base <name>]`. It must run before Goal Loop so that the Goal Loop section includes the Memory Tool steps.
+1. **Memory Tool:** if missing, `python -m memory_tool init [--base <name>]`. If present but its skills are missing or old (no `mt-record`, or a `.claude/guidelines.md` left over), `python -m memory_tool init --update-all` after approval. Either way the skills land in `.claude/skills/` and `.agents/skills/`.
 2. **`.gitignore`:** add the knowledge base folder only if the user chose to exclude it.
-3. **Goal Loop:** `goal-loop project-init . --agents claude[,codex] --judge <judge>`.
-   - Use the generated section by default: it is short and the tool keeps it current. Add `--skills-only` only in the umbrella project, or when the user keeps a hand-written Goal Loop section. With `--skills-only`, check that the hand-written text still has the three rules the command names in its `instructions` field (the agent's name, never recording as `user`, the judge per agent).
-   - Re-running is safe: only the text inside its markers changes. A skill file whose content differs is `kept`, not replaced. When the kept file is an older copy of the tool's template (nobody edited it), ask, then delete it and run the command again.
-   - Report every `kept` and `warnings` entry.
-4. **Codex** (if used): copy each `.claude/skills/mt-*/` to `.agents/skills/mt-*/`, skipping a destination that differs and reporting it. Run `python <this skill's folder>/scripts/workbench.py install-codex` once per machine for the user-level skills (`--force` replaces copies that differ).
-5. **Managed note:** add it only for rules the project does not already have. Today it holds one rule, so add it only when the project requires recording every activity; otherwise grilling rounds are already outside what gets recorded, and the note is noise. If the markers exist but the rule no longer applies, propose removing the block.
+3. **Goal Loop:** `goal-loop project-init . --agents claude,codex --skills-only --judge <judge>`. Keep its `judges_by_agent` for step 3.5. A skill file whose content differs is `kept`, not replaced; when the kept file is an older copy of the tool's template (nobody edited it), ask, then delete it and run the command again. Report every `kept` and `warnings` entry.
+   If a generated `goal-loop` section is already in `CLAUDE.md` or `AGENTS.md`, step 3.5 replaces it with the shared rules; do not leave both.
+4. **Managed note:** today it holds one rule, so add it only when the project requires recording every activity; otherwise grilling rounds are already outside what gets recorded, and the note is noise. If the markers exist but the rule no longer applies, propose removing the block. Put it in `AGENTS.md`, near the logging rule.
 
    ```markdown
    <!-- project-setup:begin (project-setup 스킬이 관리하는 절입니다. 표지 안을 고치면 다시 실행할 때 바뀝니다) -->
-   ## 질문 세션
-
    - `grill-me`(`grilling`)로 계획을 검증하는 동안에는 질문 라운드마다 타임라인에 기록하지 않는다. 사용자가 합의를 확인하면, 정해진 결정을 한 번에 타임라인에 기록할지 묻는다.
    <!-- project-setup:end -->
    ```
 
-   Place it after the Goal Loop section and match the heading level to the surrounding text. When `AGENTS.md` only points to `CLAUDE.md`, the block goes in `CLAUDE.md` alone.
+5. **Tidy into the layout** (if approved). Build `AGENTS.md` from:
+   - the project's own rules and facts that are already there (kept in the user's wording);
+   - the Memory Tool rules from `<base>/templates/CLAUDE.md.template` (its `## Memory Tool` section), adjusted where the project already says otherwise, such as its recording rule;
+   - the shared Goal Loop rules below, with `<memory step>` replaced by the Memory Tool session-start step when the project has Memory Tool;
+   - the `## Codex` section.
 
-6. **Tidy `CLAUDE.md` and `AGENTS.md`** (if approved). These files load in every session, so they hold only what must apply without a request. Classify every block:
+   ```markdown
+   ## Goal Loop
+
+   이 프로젝트의 작업은 Goal Loop 기록(`.goal-loop/`)으로 추적한다. 명령과 절차는 `goal-loop` 스킬과 `goal-loop guide`에 있다.
+   Aim을 만들거나 나누기 전, 접근을 고르기 전, 기준과 Contract를 쓰기 전, 불합격이 나온 뒤에는 `goal-loop-planning` 스킬을 따른다.
+
+   - 세션 시작: <memory step> `goal-loop where`(`source: project` 확인), `goal-loop next`, `goal-loop status`로 열린 Aim, 실행 중인 Attempt, 검증 대기를 요약한다.
+   - 에이전트는 자기 이름으로 기록한다(아래 에이전트별 절). `user` 이름으로는 아무것도 기록하지 않는다. 종료, 일시 중지와 재개, 보류, 검토 해소는 사용자가 정한다.
+   - Verdict와 Aim 평가는 직접 기록하지 않고 실행하지 않은 판정자에게 맡긴다: `goal-loop verification-begin <goal-id> <attempt-id>` 뒤 `goal-loop-judge --judge <판정자> goal <goal-id>`, Aim은 `aim <aim-id>`.
+   - 판정에 동의하지 않으면 의견을 Evidence로 남기고 사용자에게 알린다. 다른 결과를 얻으려고 판정을 다시 실행하지 않는다.
+
+   ## Codex
+
+   - 기록 이름은 `codex`, 판정자는 `<judge for codex>`이다. 스킬은 `.agents/skills/`에 있다.
+   ```
+
+   And `CLAUDE.md`:
+
+   ```markdown
+   @AGENTS.md
+
+   ## Claude Code
+
+   - 위 `AGENTS.md`의 "Codex" 절은 적용하지 않는다. 기록 이름은 `claude`, 판정자는 `<judge for claude>`이다.
+   ```
+
+   An umbrella project keeps its hand-written Goal Loop section (its Aim map, links and judging rules) instead of the shared block, but still follows the layout.
+
+   Classify every existing block before moving it:
 
    | Class | Example | Action |
    |:---|:---|:---|
-   | Always-on rule | principles, the agent's name, never recording as `user`, judge separation, "record every activity", which interpreter to use | Keep, one line each; name the skill that holds the how-to |
+   | Always-on rule | principles, the agent's name, never recording as `user`, judge separation, the recording rule, which interpreter to use | Keep, one line each; name the skill that holds the how-to |
    | Project fact | what the project is, folder layout, an umbrella's Aim map | Keep, short |
-   | Usage or procedure | command lists, option details, step-by-step workflows | Delete when an installed skill already holds it (name the skill); otherwise move to `docs/` or propose a project skill |
+   | Usage or procedure | command lists, option details, step-by-step workflows | Delete when an installed skill already holds it (name the skill, for example `mt-record` for `m`/`ms`/`mcontext`); otherwise move to `docs/` or propose a project skill |
    | Design notes or history | how a mechanism works inside, why it changed, goal IDs of past fixes | Move to `docs/` |
-   | Duplicate | the same rule in the tool's generated section, or in both files | Keep one copy, preferring the tool's section |
-   | Stale | text that no longer matches the project | Point it out; the user rewrites or deletes it |
+   | Duplicate | a rule in both files, or a generated section next to a hand-written one | Keep one copy |
+   | Stale | references to files that no longer exist (such as a retired `.claude/guidelines.md`), text that no longer matches the project | Point it out; the user rewrites or deletes it |
 
-   - Show a table of every removed or moved block and its destination, then the full diff. Nothing is removed without a destination unless an installed skill already holds it, and you say which.
-   - When `AGENTS.md` repeats `CLAUDE.md`, replace it with a short file that points to `CLAUDE.md` and lists only the Codex differences: record as `codex`; skills are in `.agents/skills/`; Codex's own work is judged with `--judge claude`.
+   - Show a table of every removed or moved block and its destination, then the full diff of both files. Nothing is removed without a destination unless an installed skill already holds it, and you say which.
    - Keep the user's wording in what stays. Do not rewrite sentences that are kept.
    - Moving text to `docs/` creates files: name them in the diff.
-   - If another session is working in the same repository (uncommitted changes to these files), stop and say so instead of editing.
 
+6. **Codex user-level skills:** run `python <this skill's folder>/scripts/workbench.py install-codex` once per machine (`--force` replaces copies that differ).
 7. **Umbrella link** (if configured and approved): the project needs an Aim of its own first; if it has none, stop here and tell the user to link later. Otherwise, with approval for each command, run inside the umbrella folder:
 
    ```bash

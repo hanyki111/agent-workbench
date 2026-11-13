@@ -23,7 +23,7 @@ Decide from the subject. If it is unclear, make it the first question of the fir
 
 Load `goal-loop-planning` and use it for what to ask:
 
-- Start the tree with the Aim definition (its section 3): the result that changes, how we will know it is done, outside conditions, the stop condition. Splitting (its section 4) and each part's type come after.
+- Start the tree with what that skill says to do when defining an Aim and asking about it: the result that changes, how we will know it is done, outside conditions, the stop condition. Choosing the approach, splitting, and each part's type come after. Refer to its parts by topic, not by section number; the skill keeps details in reference files that it names.
 - Every recommended answer names the observation it rests on: a file, a log, a measurement, or the user's own words. Without one, say there is no observation and do not recommend a Contract for that part; it stays exploration. A recommendation without an observation is a guess, and a "yes" to a guess must not become a criterion.
 - Look facts up the cheapest way first: read before you run, run before you build.
 - Leave out questions that belong to later stages (diagnosis, a `not_satisfied` Verdict, a plateau). They are asked when that stage comes.
