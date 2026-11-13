@@ -51,6 +51,51 @@ def same_path(a: str | Path, b: str | Path) -> bool:
     return os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b))
 
 
+def read_text(path: Path) -> str | None:
+    """File text with line endings normalized (Git may check files out with CRLF), or None if missing."""
+    try:
+        return path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    except OSError:
+        return None
+
+
+def memory_tool_pairs() -> dict[str, dict[str, Path]] | None:
+    """Each mt-* skill's files in the installed memory_tool package, keyed by skill name and relative path."""
+    for python in (shutil.which("python"), sys.executable):
+        if not python:
+            continue
+        code, out = run([python, "-c", "import memory_tool, os; print(os.path.dirname(memory_tool.__file__))"], Path.cwd())
+        base = Path(out.strip()) / "templates" / "skills" if code == 0 and out.strip() else None
+        if base and base.is_dir():
+            return {skill.name: {p.relative_to(skill).as_posix(): p for p in skill.rglob("*") if p.is_file() and "__pycache__" not in p.parts}
+                    for skill in sorted(base.iterdir()) if (skill / "SKILL.md").is_file()}
+    return None
+
+
+def goal_loop_pairs(config: dict) -> dict[str, dict[str, Path]] | None:
+    """The goal-loop skills' files in the installed goal_loop_tool package (agent_files), keyed like the copies."""
+    candidates = []
+    if config.get("goal_loop", {}).get("package_dir"):
+        candidates.append(Path(config["goal_loop"]["package_dir"]))
+    code, venvs = run([sys.executable, "-m", "pipx", "environment", "--value", "PIPX_LOCAL_VENVS"], Path.cwd())
+    if code == 0 and venvs.strip():
+        venv = Path(venvs.strip()) / "goal-loop-tool"
+        candidates += [venv / "Lib/site-packages/goal_loop_tool", *venv.glob("lib/python*/site-packages/goal_loop_tool")]
+    for package in candidates:
+        files = package / "agent_files"
+        if not (files / "goal-loop-SKILL.md").is_file():
+            continue
+        pairs: dict[str, dict[str, Path]] = {}
+        for source in sorted(files.glob("*-SKILL.md")):
+            skill = source.name[: -len("-SKILL.md")]
+            pairs[skill] = {"SKILL.md": source}
+            references = files / f"{skill}-references"
+            if references.is_dir():
+                pairs[skill].update({f"references/{p.name}": p for p in sorted(references.iterdir()) if p.is_file()})
+        return pairs
+    return None
+
+
 def plugin_installed() -> bool:
     """Whether Claude Code lists this plugin as installed for the user."""
     path = Path.home() / ".claude/plugins/installed_plugins.json"
@@ -97,8 +142,6 @@ def diagnose(root: Path, config: dict) -> list[dict]:
         add("memory-tool", ".claude/guidelines.md", False, "left by an older version; minit --update-all sets it aside")
     record_skill = root / ".claude/skills/mt-record/SKILL.md"
     has_question_rule = record_skill.is_file() and QUESTION_RULE in record_skill.read_text(encoding="utf-8")
-    if record_skill.is_file() and not has_question_rule:
-        add("memory-tool", "mt-record question-session rule", False, "older than memory_tool 1.10.1; minit --update-all")
     for name in MT_SKILLS:
         add("memory-tool", f".claude/skills/{name}", (root / ".claude/skills" / name / "SKILL.md").is_file())
         add("codex", f".agents/skills/{name}", (root / ".agents/skills" / name / "SKILL.md").is_file())
@@ -119,6 +162,23 @@ def diagnose(root: Path, config: dict) -> list[dict]:
     for name in GOAL_LOOP_SKILLS:
         add("goal-loop", f".claude/skills/{name}", (root / ".claude/skills" / name / "SKILL.md").is_file())
         add("codex", f".agents/skills/{name}", (root / ".agents/skills" / name / "SKILL.md").is_file())
+
+    # Skill copies against the templates of the installed tools
+    for tool, pairs, fix in (
+        ("memory-tool", memory_tool_pairs(), "python -m memory_tool init --update-all"),
+        ("goal-loop", goal_loop_pairs(config), "delete the copy, then goal-loop project-init . --agents claude,codex --skills-only"),
+    ):
+        if pairs is None:
+            add("copies", f"{tool} templates", None, "installed package not found; copies not compared")
+            continue
+        for skill, template_files in pairs.items():
+            for folder in (".claude/skills", ".agents/skills"):
+                copy = root / folder / skill
+                if not (copy / "SKILL.md").is_file():
+                    continue
+                stale = [rel for rel, source in template_files.items() if read_text(copy / rel) != read_text(source)]
+                detail = "" if not stale else f"differs from installed {tool} ({', '.join(stale)}): older copy or edited; {fix}"
+                add("copies", f"{folder}/{skill}", not stale, detail)
 
     # Instruction files: AGENTS.md is the source, CLAUDE.md imports it
     umbrella = config.get("umbrella", {}).get("path")

@@ -10,3 +10,6 @@ parent_aim = "aim-1"
 [goal_loop]
 # A Goal Loop development checkout. project-setup compares the PATH CLI against its .venv.
 dev_checkout = "D:/src/goal-loop"
+# The installed goal_loop_tool package folder, used to compare project skill copies with its templates.
+# Needed only when Goal Loop was not installed with pipx (for example with uv tool).
+# package_dir = "C:/Users/me/AppData/Roaming/uv/tools/goal-loop-tool/Lib/site-packages/goal_loop_tool"

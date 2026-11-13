@@ -31,6 +31,7 @@ Both tools stay standalone. This skill calls their installers and reads their te
 
 - `[umbrella] path`, `parent_aim`: a folder whose Goal Loop journal plans several projects, and the Aim under which project Aims are linked.
 - `[goal_loop] dev_checkout`: a Goal Loop development checkout to compare the PATH CLI against.
+- `[goal_loop] package_dir`: the installed `goal_loop_tool` package folder, when it is not in the pipx venv the script looks in.
 
 Never write personal paths or Aim IDs into this skill or into a project's files unless the user gives them.
 
@@ -54,6 +55,7 @@ python <this skill's folder>/scripts/workbench.py diagnose <project root>
 
 Then check what the script cannot judge:
 
+- **Skill copies:** the `copies` rows compare each project copy with the installed tool's template. A copy that differs is either older or edited by someone. Check the file's history (`git log -p -- <file>`): if only tool updates touched it, propose refreshing it (Memory Tool: `minit --update-all`; Goal Loop: delete the copy and run `project-init` again). If someone edited it, show the difference and let the user choose.
 - **CLI version:** if the PATH `goal-loop` differs from the development checkout, check that the checkout's work is pushed (`git status -sb` shows no `ahead`), then suggest `python -m pipx reinstall goal-loop-tool`. `pipx upgrade` may do nothing because the version does not change.
 - **Instruction files:** read `CLAUDE.md` and `AGENTS.md` whole and classify every block as in step 3.5. Report the line counts, the layout (which file is the source, whether `CLAUDE.md` imports `AGENTS.md`), and how many lines each class holds.
 
