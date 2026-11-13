@@ -12,6 +12,8 @@ The single entry point for plan interviews. `grilling` decides how to ask; `goal
 
 Load the `grilling` skill (in Claude Code it is `agent-workbench:grilling`) and follow it: the design tree, rounds of every question whose prerequisites are settled, a recommended answer for each, facts looked up by you and decisions put to the user, and its end condition.
 
+While the rounds go on, do not record to the timeline (`m`), even when the project asks to record every activity: the interview counts as one activity, recorded at the end (section 4). If the project's rules explicitly make the interview rounds something to record, follow them instead.
+
 ## 2. Choose the mode
 
 Decide from the subject. If it is unclear, make it the first question of the first round.
@@ -34,4 +36,4 @@ When the `grilling` end condition is met and the user confirms the shared unders
 
 - **General:** summarize the decisions.
 - **Goal Loop:** show the draft records as `goal-loop` commands with this agent's name as the actor: `aim-create`, the criteria `proposal-create` followed by `proposal-close --kind criteria`, and `goal-accept` for each part whose Contract can be written now. Record nothing until the user approves, and follow the `goal-loop` skill for names and permissions.
-- If the project's instructions ask for decisions on the timeline, ask whether to record them now in one entry.
+- If the project keeps a timeline, ask once whether to record the settled decisions now, in one entry.
