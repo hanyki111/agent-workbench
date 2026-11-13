@@ -166,7 +166,7 @@ def diagnose(root: Path, config: dict) -> list[dict]:
     # Skill copies against the templates of the installed tools
     for tool, pairs, fix in (
         ("memory-tool", memory_tool_pairs(), "python -m memory_tool init --update-all"),
-        ("goal-loop", goal_loop_pairs(config), "delete the copy, then goal-loop project-init . --agents claude,codex --skills-only"),
+        ("goal-loop", goal_loop_pairs(config), "goal-loop project-init . --agents claude,codex (add --skills-only in an umbrella) replaces unedited older copies"),
     ):
         if pairs is None:
             add("copies", f"{tool} templates", None, "installed package not found; copies not compared")
@@ -193,9 +193,17 @@ def diagnose(root: Path, config: dict) -> list[dict]:
     imports = any(line.strip() == "@AGENTS.md" for line in claude.splitlines())
     add("instructions", "CLAUDE.md imports @AGENTS.md", imports, "" if imports else "layout: AGENTS.md should be the source")
     generated = [name for name, text in texts.items() if GOAL_LOOP_MARK in text]
-    if generated:
-        reason = "duplicates the umbrella's hand-written section" if is_umbrella else "names one agent; use --skills-only and the shared rules"
-        add("instructions", "generated goal-loop section", False, f"in {', '.join(generated)}: {reason}")
+    if is_umbrella and generated:
+        add("instructions", "generated goal-loop section", False,
+            f"in {', '.join(generated)}: duplicates the umbrella's hand-written section; remove it (the umbrella uses --skills-only)")
+    elif "CLAUDE.md" in generated and imports:
+        add("instructions", "generated goal-loop section", False,
+            "in CLAUDE.md: belongs in AGENTS.md only; rerun goal-loop project-init (current versions remove it)")
+    elif "AGENTS.md" in generated:
+        section = agents.split(GOAL_LOOP_MARK, 1)[1].split("<!-- goal-loop:end", 1)[0]
+        shared = "`claude`" in section and "`codex`" in section
+        add("instructions", "generated goal-loop section", shared,
+            "AGENTS.md, both agents" if shared else "AGENTS.md names one agent; rerun goal-loop project-init --agents claude,codex")
     if "guidelines.md" in claude + agents and not (root / ".claude/guidelines.md").is_file():
         add("instructions", "reference to .claude/guidelines.md", False, "stale: the file is retired; usage is in mt-record")
     if SETUP_MARK in claude + agents:

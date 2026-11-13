@@ -35,5 +35,5 @@ Load `goal-loop-planning` and use it for what to ask:
 When the `grilling` end condition is met and the user confirms the shared understanding:
 
 - **General:** summarize the decisions.
-- **Goal Loop:** show the draft records as `goal-loop` commands with this agent's name as the actor: `aim-create`, the criteria `proposal-create` followed by `proposal-close --kind criteria`, and `goal-accept` for each part whose Contract can be written now. Record nothing until the user approves, and follow the `goal-loop` skill for names and permissions.
+- **Goal Loop:** show the draft records as `goal-loop` commands with this agent's name as the actor: `aim-create`, the criteria `proposal-create` followed by `proposal-close --kind criteria`, and `goal-accept` for each part whose Contract can be written now. When the plan changes the criteria of an Aim that is still open, draft `aim-criteria-revise <aim-id> "<new criteria>" --supersedes <criteria proposal-id>` instead of a second criteria Proposal; the decision is the user's. Record nothing until the user approves, and follow the `goal-loop` skill for names and permissions.
 - If the project keeps a timeline, ask once whether to record the settled decisions now, in one entry.
