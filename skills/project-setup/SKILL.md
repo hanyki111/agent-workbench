@@ -21,8 +21,8 @@ Both tools stay standalone. This skill calls their installers and reads their te
 
 `AGENTS.md` is the single source: Codex reads it directly and Claude Code reads it through `@AGENTS.md`. Both files load in every session, so they hold only what must apply without a request; how to use a tool lives in its skill.
 
-- `AGENTS.md`: the project's own rules and facts, the Memory Tool rules, the shared Goal Loop rules, and a short `## Codex` section (record as `codex`, judge with `--judge <judge for codex>`).
-- `CLAUDE.md`: `@AGENTS.md`, then a short `## Claude Code` section saying the Codex section does not apply to Claude, the name `claude`, and `--judge <judge for claude>`. Nothing else, unless a rule really is Claude-only.
+- `AGENTS.md`: the project's own rules and facts, the Memory Tool rules, and the shared Goal Loop rules. The shared rules name both agents in one place (Claude Code records as `claude`, Codex as `codex`; each one's work goes to its own judge). There is no agent-only section, so neither agent reads a rule meant for the other.
+- `CLAUDE.md`: `@AGENTS.md` and nothing else, unless a rule really is Claude-only.
 - Goal Loop is installed with `--skills-only`, because its generated section names one agent and would reach Claude through the import. The command's `judges_by_agent` gives the judge for each agent.
 
 ## Settings
@@ -88,33 +88,24 @@ Ask everything in one message, with a recommended answer for each:
 5. **Tidy into the layout** (if approved). Build `AGENTS.md` from:
    - the project's own rules and facts that are already there (kept in the user's wording);
    - the Memory Tool rules from `<base>/templates/CLAUDE.md.template` (its `## Memory Tool` section), adjusted where the project already says otherwise, such as its recording rule;
-   - the shared Goal Loop rules below, with `<memory step>` replaced by the Memory Tool session-start step when the project has Memory Tool;
-   - the `## Codex` section.
+   - the shared Goal Loop rules below, with `<memory step>` replaced by the Memory Tool session-start step when the project has Memory Tool, and the judges taken from `judges_by_agent`.
 
    ```markdown
    ## Goal Loop
 
-   이 프로젝트의 작업은 Goal Loop 기록(`.goal-loop/`)으로 추적한다. 명령과 절차는 `goal-loop` 스킬과 `goal-loop guide`에 있다.
+   이 프로젝트의 작업은 Goal Loop 기록(`.goal-loop/`)으로 추적한다. 명령과 절차는 `goal-loop` 스킬(Claude Code는 `.claude/skills/`, Codex는 `.agents/skills/`)과 `goal-loop guide`에 있다.
    Aim을 만들거나 나누기 전, 접근을 고르기 전, 기준과 Contract를 쓰기 전, 불합격이 나온 뒤에는 `goal-loop-planning` 스킬을 따른다.
 
    - 세션 시작: <memory step> `goal-loop where`(`source: project` 확인), `goal-loop next`, `goal-loop status`로 열린 Aim, 실행 중인 Attempt, 검증 대기를 요약한다.
-   - 에이전트는 자기 이름으로 기록한다(아래 에이전트별 절). `user` 이름으로는 아무것도 기록하지 않는다. 종료, 일시 중지와 재개, 보류, 검토 해소는 사용자가 정한다.
-   - Verdict와 Aim 평가는 직접 기록하지 않고 실행하지 않은 판정자에게 맡긴다: `goal-loop verification-begin <goal-id> <attempt-id>` 뒤 `goal-loop-judge --judge <판정자> goal <goal-id>`, Aim은 `aim <aim-id>`.
+   - 기록 이름은 Claude Code가 `claude`, Codex가 `codex`이다. `user` 이름으로는 아무것도 기록하지 않는다. 종료, 일시 중지와 재개, 보류, 검토 해소는 사용자가 정한다.
+   - Verdict와 Aim 평가는 직접 기록하지 않고 실행하지 않은 쪽에 맡긴다: `goal-loop verification-begin <goal-id> <attempt-id>` 뒤, Claude가 실행한 일은 `goal-loop-judge --judge <judge for claude> goal <goal-id>`, Codex가 실행한 일은 `--judge <judge for codex>`로 맡긴다. Aim은 `aim <aim-id>`.
    - 판정에 동의하지 않으면 의견을 Evidence로 남기고 사용자에게 알린다. 다른 결과를 얻으려고 판정을 다시 실행하지 않는다.
-
-   ## Codex
-
-   - 기록 이름은 `codex`, 판정자는 `<judge for codex>`이다. 스킬은 `.agents/skills/`에 있다.
    ```
 
    And `CLAUDE.md`:
 
    ```markdown
    @AGENTS.md
-
-   ## Claude Code
-
-   - 위 `AGENTS.md`의 "Codex" 절은 적용하지 않는다. 기록 이름은 `claude`, 판정자는 `<judge for claude>`이다.
    ```
 
    An umbrella project keeps its hand-written Goal Loop section (its Aim map, links and judging rules) instead of the shared block, but still follows the layout.
