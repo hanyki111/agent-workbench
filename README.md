@@ -1,7 +1,7 @@
 # agent-workbench
 
 [Goal Loop](https://github.com/hanyki111/goal-loop)와 [Memory Tool](https://github.com/hanyki111/memory_tool)을 함께 쓰는 프로젝트를 설정하고 점검하는 Claude Code plugin입니다.
-두 도구는 각자 혼자 동작합니다. 이 저장소는 두 도구를 함께 쓸 때에만 필요한 것을 맡습니다: 설치 순서, 빠진 부분의 진단, Codex용 스킬 복사, 그리고 `CLAUDE.md`·`AGENTS.md`에 넣는 최소한의 규칙.
+두 도구는 각자 혼자 동작합니다. 이 저장소는 두 도구를 함께 쓸 때에만 필요한 것을 맡습니다: 설치 순서, 빠진 부분의 진단, Codex용 스킬 복사, 그리고 항상 적용할 규칙만 `AGENTS.md` 하나에 두고 `CLAUDE.md`는 `@AGENTS.md`로 가져오는 지침 구성.
 
 ## 들어 있는 스킬
 

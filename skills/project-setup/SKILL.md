@@ -1,6 +1,6 @@
 ---
 name: project-setup
-description: Diagnose one project folder, fill in whatever is missing from the Goal Loop + Memory Tool setup (Memory Tool knowledge base and skills, Goal Loop journal and skills, a minimal managed note), and tidy the agent instructions into one AGENTS.md that CLAUDE.md imports, holding only always-on rules. Use when the user starts a new project, wants an existing project brought up to that setup, or wants its agent instructions cleaned up ("프로젝트 세팅해줘", "이 프로젝트에 goal loop랑 memory tool 붙여줘", "부족한 거 설치해줘", "CLAUDE.md 정리해줘", "set up this project").
+description: Diagnose one project folder, fill in whatever is missing from the Goal Loop + Memory Tool setup (Memory Tool knowledge base and skills, Goal Loop journal and skills), and tidy the agent instructions into one AGENTS.md that CLAUDE.md imports, holding only always-on rules. Use when the user starts a new project, wants an existing project brought up to that setup, or wants its agent instructions cleaned up ("프로젝트 세팅해줘", "이 프로젝트에 goal loop랑 memory tool 붙여줘", "부족한 거 설치해줘", "CLAUDE.md 정리해줘", "set up this project").
 ---
 
 # Project Setup
@@ -56,7 +56,6 @@ Then check what the script cannot judge:
 
 - **CLI version:** if the PATH `goal-loop` differs from the development checkout, check that the checkout's work is pushed (`git status -sb` shows no `ahead`), then suggest `python -m pipx reinstall goal-loop-tool`. `pipx upgrade` may do nothing because the version does not change.
 - **Instruction files:** read `CLAUDE.md` and `AGENTS.md` whole and classify every block as in step 3.5. Report the line counts, the layout (which file is the source, whether `CLAUDE.md` imports `AGENTS.md`), and how many lines each class holds.
-- **Logging rule:** note whether the project's rules require recording every activity (for example "record everything with `m`"). The managed note depends on it.
 
 Report one table: item, current state, proposed action.
 
@@ -73,17 +72,11 @@ Ask everything in one message, with a recommended answer for each:
 
 ## 3. Apply, in this order
 
-1. **Memory Tool:** if missing, `python -m memory_tool init [--base <name>]`. If present but its skills are missing or old (no `mt-record`, or a `.claude/guidelines.md` left over), `python -m memory_tool init --update-all` after approval. Either way the skills land in `.claude/skills/` and `.agents/skills/`.
+1. **Memory Tool:** if missing, `python -m memory_tool init [--base <name>]`. If present but its skills are missing or old (no `mt-record`, an `mt-record` without the question-session rule from memory_tool 1.10.1, or a `.claude/guidelines.md` left over), `python -m memory_tool init --update-all` after approval. Either way the skills land in `.claude/skills/` and `.agents/skills/`.
 2. **`.gitignore`:** add the knowledge base folder only if the user chose to exclude it.
 3. **Goal Loop:** `goal-loop project-init . --agents claude,codex --skills-only --judge <judge>`. Keep its `judges_by_agent` for step 3.5. A skill file whose content differs is `kept`, not replaced; when the kept file is an older copy of the tool's template (nobody edited it), ask, then delete it and run the command again. Report every `kept` and `warnings` entry.
    If a generated `goal-loop` section is already in `CLAUDE.md` or `AGENTS.md`, step 3.5 replaces it with the shared rules; do not leave both.
-4. **Managed note:** today it holds one rule, so add it only when the project requires recording every activity; otherwise grilling rounds are already outside what gets recorded, and the note is noise. If the markers exist but the rule no longer applies, propose removing the block. Put it in `AGENTS.md`, near the logging rule.
-
-   ```markdown
-   <!-- project-setup:begin (project-setup 스킬이 관리하는 절입니다. 표지 안을 고치면 다시 실행할 때 바뀝니다) -->
-   - `grill-me`(`grilling`)로 계획을 검증하는 동안에는 질문 라운드마다 타임라인에 기록하지 않는다. 사용자가 합의를 확인하면, 정해진 결정을 한 번에 타임라인에 기록할지 묻는다.
-   <!-- project-setup:end -->
-   ```
+4. **Retire the managed note:** earlier versions of this skill added a `project-setup` block (no recording during question rounds) to `AGENTS.md` or `CLAUDE.md`. That rule now lives in `mt-record` (memory_tool 1.10.1 and later) and in `grill-me`, so no new block is added. If a block exists and the project's `mt-record` copy has the rule, propose removing the block. If the copy is older, propose `python -m memory_tool init --update-all` first (step 3.1), then removing it; removing it before that would leave the project without the rule.
 
 5. **Tidy into the layout** (if approved). Build `AGENTS.md` from:
    - the project's own rules and facts that are already there (kept in the user's wording);

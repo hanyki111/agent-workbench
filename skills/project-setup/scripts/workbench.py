@@ -25,6 +25,7 @@ GRILL_SKILLS = ("grill-me", "grilling")
 GOAL_LOOP_SKILLS = ("goal-loop", "goal-loop-planning")
 GOAL_LOOP_MARK = "<!-- goal-loop:begin"
 SETUP_MARK = "<!-- project-setup:begin"
+QUESTION_RULE = "is one activity"  # mt-record (memory_tool 1.10.1+): a question session counts as one activity
 
 
 def load_config() -> dict:
@@ -94,6 +95,10 @@ def diagnose(root: Path, config: dict) -> list[dict]:
     add("memory-tool", "knowledge base", memory, f"base={base}" + ("" if has_pointer else " (no .memory-tool.yml)"))
     if (root / ".claude/guidelines.md").is_file():
         add("memory-tool", ".claude/guidelines.md", False, "left by an older version; minit --update-all sets it aside")
+    record_skill = root / ".claude/skills/mt-record/SKILL.md"
+    has_question_rule = record_skill.is_file() and QUESTION_RULE in record_skill.read_text(encoding="utf-8")
+    if record_skill.is_file() and not has_question_rule:
+        add("memory-tool", "mt-record question-session rule", False, "older than memory_tool 1.10.1; minit --update-all")
     for name in MT_SKILLS:
         add("memory-tool", f".claude/skills/{name}", (root / ".claude/skills" / name / "SKILL.md").is_file())
         add("codex", f".agents/skills/{name}", (root / ".agents/skills" / name / "SKILL.md").is_file())
@@ -133,7 +138,9 @@ def diagnose(root: Path, config: dict) -> list[dict]:
         add("instructions", "generated goal-loop section", False, f"in {', '.join(generated)}: {reason}")
     if "guidelines.md" in claude + agents and not (root / ".claude/guidelines.md").is_file():
         add("instructions", "reference to .claude/guidelines.md", False, "stale: the file is retired; usage is in mt-record")
-    add("instructions", "project-setup note", None, "present" if SETUP_MARK in claude + agents else "absent (needed only with a record-everything rule)")
+    if SETUP_MARK in claude + agents:
+        detail = "retire: mt-record has the rule" if has_question_rule else "retire after minit --update-all (mt-record lacks the rule)"
+        add("instructions", "project-setup note", False, detail)
 
     # User-level skills
     plugin = plugin_installed()
